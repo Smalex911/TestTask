@@ -30,7 +30,7 @@ extension UIViewController {
 
 class ViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
     
-    var persons : [Person] = []
+    var marrUsersData = NSMutableArray()
     
     @IBOutlet weak var tableView: UITableView!
     @IBOutlet weak var activityIndicator: UIActivityIndicatorView!
@@ -40,12 +40,34 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
         
-        loadData()
+        getUsersData()
+        
+        //        let userInfo: UserInfo = UserInfo()
+        //        userInfo.Name = "Alex"
+        //        userInfo.Surname = "Sm"
+        //        ModelManager.getInstance().addStudentData(userInfo: userInfo)
     }
     
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
+    }
+    
+    //MARK: Other methods
+    
+    func getUsersData()
+    {
+        marrUsersData = NSMutableArray()
+        if ModelManager.getInstance().addTable() {
+            marrUsersData = ModelManager.getInstance().getAllUsersData()
+            if (marrUsersData.count == 0) {
+                loadData()
+            } else {
+                tableView.reloadData()
+            }
+        } else {
+            print("Не удается создать таблицу")
+        }
     }
     
     // MARK: - UITextFieldDelegate Methods
@@ -54,26 +76,17 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return persons.count
+        return marrUsersData.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath) as! PersonTableViewCell
         
-        cell.name.text = persons[indexPath.row].name
-        cell.surname.text = persons[indexPath.row].surname
-        cell.icon.image = persons[indexPath.row].icon
+        let person : Person = marrUsersData.object(at: indexPath.row) as! Person
         
-        //Загрузка выполняется быстрее, однако при разрывах соединения с интернетом пропадают изображения у некоторых людей
-        //        let searchURL = URL(string: persons[indexPath.row].iconM)
-        //        URLSession.shared.dataTask(with: searchURL!) { data, response, error in
-        //            guard let data = data, error == nil else { return }
-        //
-        //            DispatchQueue.main.sync() {
-        //
-        //                cell.icon.image = UIImage(data: data)!
-        //            }
-        //        }.resume()
+        cell.name.text = person.name
+        cell.surname.text = person.surname
+        cell.icon.image = person.icon
         
         return cell
     }
@@ -108,7 +121,7 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
             print("loading")
             Person.persons() { persons in
                 DispatchQueue.main.async() {
-                    self.persons += persons
+                    self.marrUsersData.addObjects(from: persons as! [Any])
                     self.tableView.reloadData()
                     self.loadMoreStatus = false
                     self.activityIndicator.stopAnimating()
@@ -131,7 +144,16 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
                 as! DetailViewController
             
             let myIndexPath = self.tableView.indexPathForSelectedRow!
-            detailViewController.person = persons[myIndexPath.row]
+            detailViewController.person = marrUsersData.object(at: myIndexPath.row) as? Person
+        }
+    }
+    
+    @IBAction func deleteData(_ sender: Any) {
+        if ModelManager.getInstance().deleteUsersData() {
+            marrUsersData = []
+            tableView.reloadData()
+        } else {
+            print("Ошибка удаления данных")
         }
     }
 }

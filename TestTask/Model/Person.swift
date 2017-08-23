@@ -27,6 +27,22 @@ struct Person {
         case invalid(String, Any)
     }
     
+    init(icon: UIImage, iconM: String, iconL: String, name: String,surname: String, birthday: String, location: Dictionary<String, String>, phone: String, email: String) {
+        self.icon = icon
+        self.iconM = iconM
+        self.iconL = iconL
+        self.name = name
+        self.surname = surname
+        self.birthday = birthday
+        self.location = (
+            location["street"]!,
+            location["city"]!,
+            location["state"]!,
+            Int(location["postcode"]!)!)
+        self.phone = phone
+        self.email = email
+    }
+    
     init(json: [String: Any]) throws {
         // Extract icon
         guard let iconJSON = json["picture"] as? [String: String],
@@ -87,8 +103,8 @@ struct Person {
         self.email = email
     }
     
-    static func persons(completion: @escaping ([Person]) -> Void) {
-        var persons: [Person] = []
+    static func persons(completion: @escaping (NSMutableArray) -> Void) {
+        let marrStudentInfo = NSMutableArray()
         let searchURL = URL(string: urlString)
         
         URLSession.shared.dataTask(with:searchURL!) { (data, response, error) in
@@ -108,13 +124,16 @@ struct Person {
                                 person.icon = UIImage(data: data as Data)!
                             }
                         }
-                        persons.append(person)
+                        marrStudentInfo.add(person)
+                        if !ModelManager.getInstance().addUserData(userInfo: person) {
+                            print("Не удалось записать данные в бд")
+                        }
                     }
                 } catch let error as NSError {
                     print(error)
                 }
             }
-            completion(persons)
+            completion(marrStudentInfo)
             }.resume()
     }
 }
